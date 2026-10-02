@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡Gira y Gana!</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle, #1a1a2e, #0f0f1b);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #ff007f;
+            text-transform: uppercase;
+        }
+
+        .wheel-wrapper {
+            position: relative;
+            width: 360px;
+            height: 360px;
+            margin: 0 auto 30px;
+        }
+
+        /* Flecha indicadora en la parte superior */
+        .pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 30px solid #ff0055;
+            z-index: 10;
+            filter: drop-shadow(0px 6px 10px rgba(0,0,0,0.7));
+        }
+
+        /* El contenedor de la ruleta que aplicará el giro */
+        .wheel-container {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 8px solid #ffcc00;
+            box-shadow: 0 0 25px #ffcc00;
+            overflow: hidden;
+            transition: transform 4s cubic-bezier(0.1, 0.8, 0.1, 1);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .spin-btn {
+            /* 1. TEXTURA DE HIELO CRISTALINO */
+            /* Degradado interno que simula capas de hielo congelado */
+            background: linear-gradient(135deg, rgba(240, 253, 255, 0.45) 0%, rgba(150, 220, 240, 0.25) 50%, rgba(80, 180, 220, 0.35) 100%);
+            backdrop-filter: blur(14px) saturate(120%); /* Difumina el fondo de forma densa como el hielo grueso */
+            -webkit-backdrop-filter: blur(14px) saturate(120%);
+            /* Borde blanco irregular que simula escarcha o el filo congelado de un iceberg */
+            border: 1.5px solid rgba(255, 255, 255, 0.75);
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            font-weight: 900; /* Texto bien grueso para que resalte sobre el hielo */
+            color: #ffffff;
+            border-radius: 122px; /* Bordes menos redondos (más rectos) para que parezca un bloque tallado */
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            /* Efecto de texto congelado con sombra ártica */
+            text-shadow: 0 0 8px rgba(0, 212, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.4);
+            /* 2. EFECTO 3D DE BLOQUE DE HIELO (Grosor inferior y grietas de luz) */
+            box-shadow: inset 0 6px 8px rgba(255, 255, 255, 0.8), /* Reflejo de luz y nieve en la parte superior */
+            inset 0 -6px 12px rgba(0, 100, 150, 0.4), /* Profundidad azul interna del hielo grueso */
+            0 8px 0 rgba(100, 180, 210, 0.7), /* El bloque 3D del iceberg (Grosor translúcido) */
+            0 15px 40px rgba(0, 180, 216, 0.45); /* 3. NIEBLA HELADA / RESPLANDOR FRÍO */
+
+            position: relative;
+            top: 0;
+            transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+            /* EFECTO CUANDO PASAS EL CURSOR (Hover) - El hielo brilla e intensifica su aura fría */
+            .spin-btn:hover {
+                background: linear-gradient(135deg, rgba(240, 253, 255, 0.6) 0%, rgba(170, 235, 255, 0.35) 50%, rgba(100, 200, 240, 0.45) 100%);
+                border-color: rgba(255, 255, 255, 0.95);
+                box-shadow: inset 0 6px 10px rgba(255, 255, 255, 0.9), inset 0 -6px 12px rgba(0, 100, 150, 0.5), 0 8px 0 rgba(140, 210, 235, 0.85), /* El bloque 3D se ilumina */
+                0 20px 55px rgba(0, 212, 255, 0.7); /* Aura de niebla de nitrógeno o frío extremo */
+                transform: translateY(-2px);
+            }
+
+            /* EFECTO CUANDO SE PRESIONA (Active) - El bloque se hunde de forma mecánica */
+            .spin-btn:active {
+                top: 6px; /* El botón se aplasta cubriendo su volumen 3D */
+                box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.4), inset 0 -3px 8px rgba(0, 50, 100, 0.6), 0 2px 0 rgba(100, 180, 210, 0.8), 0 5px 20px rgba(0, 180, 216, 0.3);
+            }
+
+
+        /* Pop-up de Premio */
+        .popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .popup-content {
+            background: #222;
+            padding: 40px;
+            border-radius: 20px;
+            border: 3px solid #ffcc00;
+            text-align: center;
+            max-width: 90%;
+            width: 400px;
+        }
+
+        .popup h2 {
+            color: #38ef7d;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .popup p {
+            font-size: 1.2rem;
+            margin-bottom: 25px;
+        }
+
+        .cta-btn {
+            display: inline-block;
+            background: #38ef7d;
+            color: #000;
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 25px;
+            box-shadow: 0 4px 15px rgba(56, 239, 125, 0.4);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>¡Prueba tu Suerte Hoy!</h1>
+
+        <div class="wheel-wrapper">
+            <div class="pointer"></div>
+            <!-- Cambiamos la estructura para rotar el contenedor del canvas -->
+            <div class="wheel-container" id="wheelContainer">
+                <canvas id="wheelCanvas" width="500" height="500"></canvas>
+            </div>
+        </div>
+
+        <button class="spin-btn" id="spinBtn" onclick="spinWheel()">¡GIRAR AHORA!</button>
+    </div>
+
+    <div class="popup" id="popup">
+        <div class="popup-content">
+            <h2>¡CASI GANAS!</h2>
+            <p>Ahora porfis <strong id="prizeText" style="color: #ffcc00;"></strong></p>
+            <a href="https://www.facebook.com/groups/633734750778023/user/61550557100896/" class="cta-btn">PAGAR EL SEIS AQUI</a>
+        </div>
+    </div>
+
+    <script>
+                // Lista de sectores (6 en total, alternando ganar y perder)
+                // Definimos los colores directamente aquí
+                const sectors = [
+                    { text: "Me pichas un seis", isWinner: true, color: "#34596B" },
+                    { text: "Te doy los $35 Mil", isWinner: false, color: "#F54627" },
+                    { text: "Me pichas un seis",     isWinner: true,  color: "#8a2387" },
+                    { text: "Te doy los $35 Mil", isWinner: false, color: "#586B34" },
+                    { text: "Me pichas un seis",     isWinner: true,  color: "#F59827" },
+                    { text: "Te doy los $35 Mil", isWinner: false, color: "#27A6F5" }
+                ];
+
+                const numSectors = sectors.length;
+                const arcSize = (2 * Math.PI) / numSectors; // Tamaño angular de cada porción
+                const canvas = document.getElementById("wheelCanvas");
+                const ctx = canvas.getContext("2d");
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const radius = canvas.width / 2;
+
+                // --- DIBUJAR LA RULETA AUTOMÁTICAMENTE ---
+                function drawWheel() {
+                    // Limpiar canvas
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    for (let i = 0; i < numSectors; i++) {
+                        // Calcular el ángulo inicial y final de cada rebanada
+                        // Restamos Math.PI / 2 (90 grados) para que el primer sector empiece apuntando verticalmente hacia arriba
+                        const startAngle = i * arcSize - Math.PI / 2;
+                        const endAngle = startAngle + arcSize;
+
+                        // Dibujar el fondo del sector
+                        ctx.fillStyle = sectors[i].color;
+                        ctx.beginPath();
+                        ctx.moveTo(centerX, centerY);
+                        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        // Añadir líneas divisorias sutiles
+                        ctx.strokeStyle = "rgba(255,255,255,0.1)";
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+
+                        // --- ESCRIBIR EL TEXTO DENTRO ---
+                        ctx.save();
+                        // Mover el origen al centro del canvas
+                        ctx.translate(centerX, centerY);
+                        // Rotar el lienzo hacia el centro exacto de la rebanada de pastel actual
+                        ctx.rotate(startAngle + arcSize / 2);
+
+                        // Estilo del texto
+                        ctx.fillStyle = "#ffffff";
+                        ctx.font = "bold 26px Playfair Display";
+                        ctx.textAlign = "right"; // Alineamos a la derecha para empujarlo hacia el borde exterior
+                        ctx.textBaseline = "middle";
+
+                        // Dibujar el texto un poco hacia adentro desde el borde (radio - 30px)
+                        ctx.fillText(sectors[i].text, radius - 18, 0);
+                        ctx.restore();
+                    }
+                }
+
+                // Renderizamos la ruleta al cargar la página
+                drawWheel();
+
+
+                // --- LÓGICA DE GIRO (SIEMPRE GANADOR) ---
+                let hasSpun = false;
+
+                function spinWheel() {
+                    if (hasSpun) return;
+                    hasSpun = true;
+
+                    const wheelContainer = document.getElementById('wheelContainer');
+                    const spinBtn = document.getElementById('spinBtn');
+                    spinBtn.disabled = true;
+
+                    // 1. Filtrar solo los índices de los sectores ganadores (0, 2 y 4)
+                    const winningIndices = [];
+                    sectors.forEach((sector, index) => {
+                        if (sector.isWinner) winningIndices.push(index);
+                    });
+
+                    // 2. Elegir un índice ganador al azar
+                    const randomWinnerIndex = winningIndices[Math.floor(Math.random() * winningIndices.length)];
+                    const luckyPrize = sectors[randomWinnerIndex];
+
+                    // 3. Calcular el ángulo exacto para que caiga ahí
+                    // Cada sector mide 60 grados (360 / 6)
+                    const sectorDegrees = 360 / numSectors;
+
+                    // Calculamos el centro del sector elegido en grados
+                    const targetAngle = (randomWinnerIndex * sectorDegrees) + (sectorDegrees / 2);
+
+                    // 5 vueltas completas (1800°) + la compensación inversa (360 - targetAngle) para que frene justo debajo del marcador superior
+                    const totalDegrees = 1800 + (360 - targetAngle);
+
+                    // Aplicar rotación al contenedor de la ruleta
+                    wheelContainer.style.transform = `rotate(${totalDegrees}deg)`;
+
+                    // Mostrar resultado al finalizar la animación
+                    setTimeout(() => {
+                        document.getElementById('prizeText').innerText = luckyPrize.text;
+                        document.getElementById('popup').style.display = 'flex';
+                    }, 4000);
+                }
+    </script>
+</body>
+</html>
